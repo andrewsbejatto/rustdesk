@@ -6,6 +6,8 @@ import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
+import 'package:flutter_hbb/trmm/pages/trmm_home_page.dart';
+import 'package:flutter_hbb/trmm/trmm_native.dart';
 import 'package:get/get.dart';
 import 'package:window_manager/window_manager.dart';
 // import 'package:flutter/services.dart';
@@ -43,6 +45,18 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   _DesktopTabPageState() {
     RemoteCountState.init();
     Get.put<DesktopTabController>(tabController);
+    // TRMM Desktop: management screens first, RustDesk home after
+    // (not on computers managed by TRMM, where this is only the host)
+    final showTrmm = !bind.isIncomingOnly() && !isTrmmManagedHost();
+    if (showTrmm) {
+      tabController.add(TabInfo(
+          key: 'TRMM',
+          label: 'TRMM',
+          selectedIcon: Icons.dashboard,
+          unselectedIcon: Icons.dashboard_outlined,
+          closable: false,
+          page: const TrmmHomePage(key: ValueKey('TRMM'))));
+    }
     tabController.add(TabInfo(
         key: kTabLabelHomePage,
         label: kTabLabelHomePage,
@@ -52,6 +66,10 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         page: DesktopHomePage(
           key: const ValueKey(kTabLabelHomePage),
         )));
+    // TRMM Desktop: the TRMM tab is the default one
+    if (showTrmm) {
+      tabController.jumpTo(0, callOnSelected: false);
+    }
     if (bind.isIncomingOnly()) {
       tabController.onSelected = (key) {
         if (key == kTabLabelHomePage) {

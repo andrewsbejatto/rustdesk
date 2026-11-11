@@ -234,7 +234,28 @@ pub fn core_main() -> Option<CoreMainAction> {
         #[cfg(windows)]
         {
             use crate::platform;
-            if args[0] == "--uninstall" {
+            if args[0] == "--trmm-notify" {
+                // TRMM Desktop: Windows notification for Tactical RMM alerts,
+                // started by the app as `--trmm-notify <title> <text>`
+                // arguments are base64 (url-safe) so an alert text can never be
+                // read as another command line flag
+                let arg = |i: usize| -> String {
+                    use hbb_common::base64::{engine::general_purpose::URL_SAFE, Engine as _};
+                    args.get(i)
+                        .and_then(|a| URL_SAFE.decode(a).ok())
+                        .map(|b| String::from_utf8_lossy(&b).to_string())
+                        .unwrap_or_default()
+                };
+                let title = arg(1);
+                Toast::new(Toast::POWERSHELL_APP_ID)
+                    .title(if title.is_empty() { "TRMM Desktop" } else { &title })
+                    .text1(&arg(2))
+                    .sound(Some(Sound::Default))
+                    .duration(Duration::Long)
+                    .show()
+                    .ok();
+                return None;
+            } else if args[0] == "--uninstall" {
                 if let Err(err) = platform::uninstall_me(true) {
                     log::error!("Failed to uninstall: {}", err);
                 }
@@ -287,20 +308,12 @@ pub fn core_main() -> Option<CoreMainAction> {
                 let (printer_override, debug) = parse_silent_install_args(&args);
                 let options = platform::get_silent_install_options(printer_override);
                 let res = platform::install_me(options, "".to_owned(), true, debug);
-                let text = match res {
-                    Ok(_) => translate("Installation Successful!".to_string()),
-                    Err(err) => {
-                        println!("Failed with error: {err}");
-                        translate("Installation failed!".to_string())
-                    }
-                };
-                Toast::new(Toast::POWERSHELL_APP_ID)
-                    .title(&config::APP_NAME.read().unwrap())
-                    .text1(&text)
-                    .sound(Some(Sound::Default))
-                    .duration(Duration::Short)
-                    .show()
-                    .ok();
+                // TRMM Desktop: silent install is done by the TRMM server on a
+                // managed computer, no notification for the user there
+                match res {
+                    Ok(_) => println!("Installation Successful!"),
+                    Err(err) => println!("Failed with error: {err}"),
+                }
                 return None;
             } else if args[0] == "--uninstall-cert" {
                 #[cfg(windows)]
@@ -419,6 +432,35 @@ pub fn core_main() -> Option<CoreMainAction> {
                     filepath = path.to_str().unwrap().to_string();
                 }
                 import_config(&filepath);
+            }
+            return None;
+        } else if args[0] == "--password-file" {
+            // TRMM Desktop: like --password, but the password comes from a file
+            // (root/SYSTEM only) so it never shows in the process list; the file
+            // is deleted after reading
+            if is_cli_setting_change_disabled() {
+                println!("Settings are disabled!");
+                return None;
+            }
+            if config::Config::is_disable_change_permanent_password() {
+                println!("Changing permanent password is disabled!");
+                return None;
+            }
+            if args.len() == 2 {
+                let password = std::fs::read_to_string(&args[1]).unwrap_or_default();
+                let _ = std::fs::remove_file(&args[1]);
+                let password = password.trim().to_owned();
+                if password.is_empty() {
+                    println!("Empty password file");
+                } else if crate::platform::is_installed() && is_root() {
+                    if let Err(err) = crate::ipc::set_permanent_password(password) {
+                        println!("{err}");
+                    } else {
+                        println!("Done!");
+                    }
+                } else {
+                    println!("Installation and administrative privileges required!");
+                }
             }
             return None;
         } else if args[0] == "--password" {
@@ -865,6 +907,7 @@ fn is_user_main_ipc_scope_cli_command(args: &[String]) -> bool {
     matches!(
         args.first().map(String::as_str),
         Some("--password")
+            | Some("--password-file")
             | Some("--set-unlock-pin")
             | Some("--get-id")
             | Some("--set-id")

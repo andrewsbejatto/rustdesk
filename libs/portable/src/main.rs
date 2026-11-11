@@ -271,6 +271,22 @@ fn execute(path: PathBuf, args: Vec<String>, _ui: bool) {
     }
 }
 
+/// TRMM Desktop: configuration appended to this executable by the TRMM server
+/// (`#TRMMCFG2#<mode>#<base64 json>#<signature>#TRMMEND#`, checked by the app), passed to the app in
+/// TRMM_EMBEDDED_CONFIG. Returns the raw block.
+fn read_trmm_trailer() -> Option<String> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(std::env::current_exe().ok()?).ok()?;
+    let len = f.metadata().ok()?.len();
+    f.seek(SeekFrom::Start(len.saturating_sub(4096))).ok()?;
+    let mut tail = Vec::new();
+    f.read_to_end(&mut tail).ok()?;
+    let tail = String::from_utf8_lossy(&tail);
+    let start = tail.rfind("#TRMMCFG2#")?;
+    let end = tail[start..].find("#TRMMEND#")? + start + "#TRMMEND#".len();
+    Some(tail[start..end].to_owned())
+}
+
 fn main() -> Result<(), String> {
     let mut args = Vec::new();
     let mut arg_exe = Default::default();
@@ -284,8 +300,15 @@ fn main() -> Result<(), String> {
         i += 1;
     }
     let click_setup = args.is_empty() && arg_exe.to_lowercase().ends_with("install.exe");
+    let trmm_config = read_trmm_trailer();
+    if let Some(cfg) = &trmm_config {
+        // inherited by the app and the processes it starts
+        std::env::set_var("TRMM_EMBEDDED_CONFIG", cfg);
+    }
     #[cfg(windows)]
-    let quick_support = args.is_empty() && win::is_quick_support_exe(&arg_exe);
+    let quick_support = args.is_empty()
+        && (win::is_quick_support_exe(&arg_exe)
+            || trmm_config.as_deref().map_or(false, |c| c.starts_with("#TRMMCFG2#qs#")));
     #[cfg(not(windows))]
     let quick_support = false;
 

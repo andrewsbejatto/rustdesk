@@ -6,6 +6,8 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/trmm/trmm_qs_install.dart';
+import 'package:flutter_hbb/trmm/trmm_tray.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -113,6 +115,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     ];
     if (isIncomingOnly) {
       children.addAll([
+        // TRMM Desktop quick support: install the agent + remote access
+        if (TrmmQsInstallButton.available) const TrmmQsInstallButton(),
         Divider(),
         OnlineStatusWidget(
           onSvcStatusChanged: () {
@@ -793,6 +797,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         await rustDeskWinManager.registerActiveWindow(call.arguments["id"]);
       } else if (call.method == kWindowEventHide) {
         await rustDeskWinManager.unregisterActiveWindow(call.arguments['id']);
+        // TRMM Desktop: main window already closed, last session window closed
+        await trmmQuitIfAlone();
       } else if (call.method == kWindowConnect) {
         await connectMainDesktop(
           call.arguments['id'],

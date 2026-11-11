@@ -1387,9 +1387,11 @@ pub fn get_install_options() -> String {
     serde_json::to_string(&opts).unwrap_or("{}".to_owned())
 }
 
+/// TRMM Desktop: silent install = managed computer (host), so no desktop
+/// shortcut (the interactive installer keeps its own options).
 pub fn get_silent_install_options(printer_override: Option<bool>) -> &'static str {
     if !is_win_10_or_greater() {
-        return "desktopicon startmenu";
+        return "startmenu";
     }
 
     let install_printer = match printer_override {
@@ -1406,9 +1408,9 @@ pub fn get_silent_install_options(printer_override: Option<bool>) -> &'static st
         }
     };
     if install_printer {
-        "desktopicon startmenu printer"
+        "startmenu printer"
     } else {
-        "desktopicon startmenu"
+        "startmenu"
     }
 }
 
@@ -2143,12 +2145,13 @@ pub fn prepare_custom_client_update() -> ResultType<bool> {
 }
 
 pub fn get_license_from_exe_name() -> ResultType<CustomServer> {
-    let mut exe = std::env::current_exe()?.to_str().unwrap_or("").to_owned();
-    // if defined portable appname entry, replace original executable name with it.
-    if let Ok(portable_exe) = std::env::var(PORTABLE_APPNAME_RUNTIME_ENV_KEY) {
-        exe = portable_exe;
+    // TRMM Desktop: server embedded in the executable by the TRMM server
+    // (only the signed embedded config: the server config in the file name of
+    // RustDesk is disabled, a renamed file would bypass the signature)
+    if let Some(c) = crate::common::trmm_embedded() {
+        return Ok(c.server.clone());
     }
-    get_custom_server_from_string(&exe)
+    hbb_common::bail!("no embedded server config")
 }
 
 // We can't directly use `RegKey::set_value` to update the registry value, because it will fail with `ERROR_ACCESS_DENIED`

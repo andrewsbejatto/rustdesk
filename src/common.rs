@@ -2454,7 +2454,174 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
     ThrottledInterval::new(i)
 }
 
+/// TRMM Desktop: configuration embedded at the end of the executable by the
+/// TRMM server (quick support download), never in the file name:
+/// `#TRMMCFG1#<mode>#<base64 json {host,key,relay,api}>#TRMMEND#`.
+/// The portable packer reads it from itself and passes it in this variable.
+pub const TRMM_EMBEDDED_ENV_KEY: &str = "TRMM_EMBEDDED_CONFIG";
+const TRMM_CFG_BEGIN: &str = "#TRMMCFG2#";
+/// public keys (base64, comma separated) of the TRMM servers allowed to sign
+/// the embedded config; set at build time from trailer-keys.txt
+const TRMM_TRAILER_KEYS: Option<&str> = option_env!("TRMM_TRAILER_KEYS");
+const TRMM_CFG_END: &str = "#TRMMEND#";
+
+pub struct TrmmEmbedded {
+    /// "qs" (quick support) or "host"
+    pub mode: String,
+    pub server: crate::custom_server::CustomServer,
+    /// Tactical RMM api + quick support token (quick support only)
+    pub trmm_api: String,
+    pub trmm_token: String,
+}
+
+lazy_static::lazy_static! {
+    static ref TRMM_EMBEDDED: Option<TrmmEmbedded> = read_trmm_embedded();
+}
+
+#[inline]
+pub fn trmm_embedded() -> Option<&'static TrmmEmbedded> {
+    TRMM_EMBEDDED.as_ref()
+}
+
+fn parse_trmm_trailer(raw: &str) -> Option<TrmmEmbedded> {
+    let start = raw.rfind(TRMM_CFG_BEGIN)? + TRMM_CFG_BEGIN.len();
+    let body = &raw[start..];
+    let body = &body[..body.find(TRMM_CFG_END)?];
+    // <mode>#<b64 json>#<b64 signature of "<mode>#<b64 json>">
+    let (payload, sig_b64) = body.rsplit_once('#')?;
+    if !trmm_trailer_signed(payload.as_bytes(), sig_b64.trim()) {
+        log::error!("TRMM Desktop: embedded config ignored (not signed by a trusted key)");
+        return None;
+    }
+    let (mode, b64) = payload.split_once('#')?;
+    let data = decode64(b64.trim()).ok()?;
+    let server = serde_json::from_slice::<crate::custom_server::CustomServer>(&data).ok()?;
+    if server.host.is_empty() {
+        return None;
+    }
+    let extra: serde_json::Value = serde_json::from_slice(&data).ok()?;
+    let text = |k: &str| extra.get(k).and_then(|v| v.as_str()).unwrap_or("").to_owned();
+    Some(TrmmEmbedded {
+        mode: mode.to_owned(),
+        server,
+        trmm_api: text("trmm_api"),
+        trmm_token: text("trmm_token"),
+    })
+}
+
+/// Ed25519 signature check with the public keys of this build
+fn trmm_trailer_signed(payload: &[u8], sig_b64: &str) -> bool {
+    let Ok(sig) = decode64(sig_b64) else {
+        return false;
+    };
+    let Ok(sig) = <[u8; 64]>::try_from(sig.as_slice()) else {
+        return false;
+    };
+    let sig = sign::Signature::new(sig);
+    TRMM_TRAILER_KEYS
+        .unwrap_or("")
+        .split(',')
+        .filter_map(|k| decode64(k.trim()).ok())
+        .filter_map(|k| sign::PublicKey::from_slice(&k))
+        .any(|pk| sign::verify_detached(&sig, payload, &pk))
+}
+
+fn read_trmm_embedded() -> Option<TrmmEmbedded> {
+    if let Ok(raw) = std::env::var(TRMM_EMBEDDED_ENV_KEY) {
+        if let Some(c) = parse_trmm_trailer(&raw) {
+            return Some(c);
+        }
+    }
+    // not packed (or env lost): read the tail of our own executable
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(std::env::current_exe().ok()?).ok()?;
+    let len = f.metadata().ok()?.len();
+    f.seek(SeekFrom::Start(len.saturating_sub(4096))).ok()?;
+    let mut tail = Vec::new();
+    f.read_to_end(&mut tail).ok()?;
+    parse_trmm_trailer(&String::from_utf8_lossy(&tail))
+}
+
+/// TRMM Desktop: settings built into the binary (RustDesk's custom.txt must be
+/// signed by RustDesk, so the defaults are applied here instead).
+/// - never update from RustDesk's github (it would replace this fork);
+/// - managed computers (installed host): only the permanent password set by
+///   the TRMM server is accepted and no window is shown to the user;
+/// - quick support executable (-qs in the name): the customer approves and
+///   reads a temporary password, as in RustDesk.
+fn apply_trmm_defaults() {
+    let exe_name = std::env::var(PORTABLE_APPNAME_RUNTIME_ENV_KEY)
+        .ok()
+        .or_else(|| {
+            std::env::current_exe()
+                .ok()
+                .map(|p| p.to_string_lossy().to_string())
+        })
+        .unwrap_or_default();
+    let exe_name = std::path::Path::new(&exe_name)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    let quick_support =
+        exe_name.contains("-qs") || trmm_embedded().map_or(false, |c| c.mode == "qs");
+
+    for (k, v) in [("enable-check-update", "N"), ("allow-auto-update", "N")] {
+        config::OVERWRITE_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+        config::OVERWRITE_LOCAL_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+    }
+    let mut builtin = vec![
+        ("hide-help-cards", "Y"),
+        ("hide-powered-by-me", "Y"),
+        ("remove-preset-password-warning", "Y"),
+        // no RustDesk Server Pro api (heartbeat/sysinfo on :21114): TRMM is the api
+        ("register-device", "N"),
+    ];
+    if let Some(c) = trmm_embedded() {
+        if c.mode == "qs" && c.trmm_api.starts_with("https://") && !c.trmm_token.is_empty() {
+            let mut b = config::BUILTIN_SETTINGS.write().unwrap();
+            b.insert("trmm-api".to_owned(), c.trmm_api.clone());
+            b.insert("trmm-qs-token".to_owned(), c.trmm_token.clone());
+        }
+    }
+    if quick_support {
+        // compact "incoming only" window: ID + temporary password, no TRMM screens
+        config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("conn-type".to_owned(), "incoming".to_owned());
+        // the server comes from the file name (set by the TRMM server); the
+        // settings dialog would show it empty and the customer must not change it
+        builtin.extend([
+            ("hide-server-settings", "Y"),
+            ("hide-network-settings", "Y"),
+            ("hide-proxy-settings", "Y"),
+            ("hide-websocket-settings", "Y"),
+        ]);
+    } else {
+        builtin.push(("hide-tray", "Y"));
+        let mut defaults = config::DEFAULT_SETTINGS.write().unwrap();
+        for (k, v) in [
+            ("approve-mode", "password"),
+            ("verification-method", "use-permanent-password"),
+            ("allow-hide-cm", "Y"),
+        ] {
+            defaults.insert(k.to_owned(), v.to_owned());
+        }
+    }
+    let mut settings = config::BUILTIN_SETTINGS.write().unwrap();
+    for (k, v) in builtin {
+        settings.insert(k.to_owned(), v.to_owned());
+    }
+}
+
 pub fn load_custom_client() {
+    apply_trmm_defaults();
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());

@@ -110,6 +110,12 @@ dependencies:
   pull_down_button: ^0.9.3
   device_info_plus: ^9.1.0
   qr_flutter: ^4.1.0
+  # TRMM Desktop: MeshCentral (take control, terminal, files) inside the app
+  desktop_webview_window: 0.3.2
+  # TRMM Desktop: tray icon of the technician app (close -> tray)
+  tray_manager: 0.5.3
+  # TRMM Desktop: hash check of the quick support installer script
+  crypto: 3.0.6
   extended_text: 14.0.0
   xterm: 4.0.0
   sqflite: 2.2.0

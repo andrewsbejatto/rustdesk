@@ -20,6 +20,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../utils/multi_window_manager.dart';
+import '../../trmm/trmm_tray.dart';
 
 const double _kTabBarHeight = kDesktopRemoteTabBarHeight;
 const double _kIconSize = 18;
@@ -432,7 +433,13 @@ class _DesktopTabState extends State<DesktopTab>
 
   @override
   void onWindowClose() async {
-    mainWindowClose() async => await windowManager.hide();
+    mainWindowClose() async {
+      // TRMM Desktop: ask "system tray or quit" (trmm_tray.dart); RustDesk
+      // would only hide the window
+      if (!await trmmOnMainWindowClose(context)) {
+        await rustDeskWinManager.registerActiveWindow(kMainWindowId);
+      }
+    }
     notMainWindowClose(WindowController windowController) async {
       if (controller.length != 0) {
         debugPrint("close not empty multiwindow from taskbar");
@@ -1083,7 +1090,8 @@ class _TabState extends State<_Tab> with RestorationMixin {
         ).paddingOnly(right: 5));
     final labelWidget = Obx(() {
       return ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: widget.maxLabelWidth ?? 200),
+          // TRMM Desktop: room for "Client - Site - hostname" (was 200)
+          constraints: BoxConstraints(maxWidth: widget.maxLabelWidth ?? 420),
           child: Tooltip(
             message:
                 widget.tabType == DesktopTabType.main ? '' : widget.label.value,

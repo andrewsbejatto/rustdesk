@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/install_page.dart';
+import 'package:flutter_hbb/trmm/trmm_native.dart';
+import 'package:flutter_hbb/trmm/trmm_tray.dart';
 import 'package:flutter_hbb/desktop/pages/server_page.dart';
 import 'package:flutter_hbb/desktop/screen/desktop_file_transfer_screen.dart';
 import 'package:flutter_hbb/desktop/screen/desktop_view_camera_screen.dart';
@@ -160,8 +162,26 @@ void runMainApp(bool startService) async {
     debugPrint("handled by uni links: $handledByUniLinks");
     if (handledByUniLinks || handleUriLink(cmdArgs: kBootArgs)) {
       windowManager.hide();
+    } else if (kBootArgs.contains('--trmm-minimized')) {
+      // TRMM Desktop started with the system: in the tray (alerts and quick
+      // support requests keep working)
+      trmmHideToTray();
     } else {
       windowManager.show();
+      // TRMM Desktop: the technician app always opens maximized (not the
+      // compact quick support window, not managed computers)
+      if (!bind.isIncomingOnly() && !isTrmmManagedHost()) {
+        windowManager.maximize();
+        // RustDesk restores the saved window frame right after this: maximize
+        // again once it is done
+        for (final ms in [300, 1000]) {
+          Future.delayed(Duration(milliseconds: ms), () async {
+            if (await windowManager.isVisible() && !await windowManager.isMaximized()) {
+              await windowManager.maximize();
+            }
+          });
+        }
+      }
       windowManager.focus();
       // Move registration of active main window here to prevent from async visible check.
       rustDeskWinManager.registerActiveWindow(kWindowMainId);
