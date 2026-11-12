@@ -21,6 +21,7 @@ String tr(String key, [List<Object?> args = const []]) {
 
 /// English texts whose key is not the text itself
 const _en = <String, String>{
+  'qs_recording_notice': 'This support session is recorded by the technician\'s company.',
   'save_password_help': 'Kept on this computer, readable only by your user (encrypted on Windows). The 2FA code is still asked.',
   'policy_agent_policy': 'Agent policy',
   'policy_site_policy': 'Site policy',
@@ -36,6 +37,21 @@ const _en = <String, String>{
 };
 
 const _pt = <String, String>{
+  'Session Recordings': 'Gravações de Sessões',
+  'Search hostname or technician': 'Buscar computador ou técnico',
+  'All sources': 'Todas as origens',
+  'No recordings': 'Nenhuma gravação',
+  'Started': 'Início',
+  'Duration': 'Duração',
+  'Client / Site': 'Cliente / Site',
+  'Technician': 'Técnico',
+  'Stored': 'Armazenada',
+  'Waiting upload': 'Aguardando envio',
+  'Receiving': 'Recebendo',
+  'Play': 'Assistir',
+  '{0} recording(s)': '{0} gravação(ões)',
+  'Set the dashboard URL in the server profile to play MeshCentral recordings': 'Informe a URL do painel web no perfil do servidor para assistir gravações do MeshCentral',
+  'qs_recording_notice': 'Esta sessão de suporte está sendo gravada pela empresa do técnico.',
   // login / servers
   'Servers': 'Servidores',
   'Server': 'Servidor',

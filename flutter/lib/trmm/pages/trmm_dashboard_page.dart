@@ -21,6 +21,7 @@ import 'trmm_alerts_page.dart';
 import 'trmm_clients_dialogs.dart';
 import 'trmm_install_agent_dialog.dart';
 import 'trmm_quick_support_page.dart';
+import 'trmm_recordings_page.dart';
 
 /// one row of the table: a TRMM agent or a computer that only has remote access
 class TrmmRow {
@@ -231,6 +232,12 @@ class _TrmmDashboardPageState extends State<TrmmDashboardPage> {
               onPressed: () => showDialog(context: context, builder: (_) => const TrmmQuickSupportDialog()),
               icon: Icons.support_agent,
               label: tr('Quick Support'),
+            ),
+          if (session.canViewRecordings)
+            IconButton(
+              tooltip: tr('Session Recordings'),
+              onPressed: () => showDialog(context: context, builder: (_) => const TrmmRecordingsDialog()),
+              icon: const Icon(Icons.video_library_outlined),
             ),
           Obx(() => IconButton(
                 tooltip: tr('Alerts'),

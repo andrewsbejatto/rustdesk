@@ -46,6 +46,7 @@ class TrmmSession extends GetxController {
   TrmmServer? get server => store.active;
   bool get canUseRemoteAccess => dashInfo['can_use_remote_access'] == true;
   bool get canUseQuickSupport => dashInfo['can_use_quick_support'] == true;
+  bool get canViewRecordings => dashInfo['can_view_recordings'] == true;
   String get language => (dashInfo['language'] as String?) ?? '';
 
   Future<void> init() async {

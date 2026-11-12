@@ -12,6 +12,7 @@ import 'trmm_dashboard_page.dart';
 import 'trmm_remote_background_page.dart';
 import 'trmm_edit_agent_dialog.dart';
 import 'trmm_file_browser.dart';
+import 'trmm_recordings_page.dart';
 import 'trmm_run_script_dialog.dart';
 
 Future<void> showAgentMenu(BuildContext context, TrmmRow row, Offset position,
@@ -50,6 +51,7 @@ Future<void> showAgentMenu(BuildContext context, TrmmRow row, Offset position,
       item('recover_mesh', Icons.healing, tr('Recover connection (MeshCentral)')),
       item('recover_agent', Icons.healing, tr('Recover connection (Tactical agent)')),
       item('uninstall', Icons.delete_outline, tr('Remove agent')),
+      if (s.canViewRecordings) item('recordings', Icons.video_library_outlined, tr('Session Recordings')),
       if (s.canUseRemoteAccess) ...[
         const PopupMenuDivider(),
         item('ra_install', Icons.download_for_offline_outlined, tr('Repair remote access')),
@@ -93,6 +95,9 @@ Future<void> _run(BuildContext context, TrmmRow row, String action, VoidCallback
       }
     case 'mesh':
       await openMesh(context, id!, 'control');
+    case 'recordings':
+      await showDialog(
+          context: context, builder: (_) => TrmmRecordingsDialog(agentId: id, hostname: row.hostname));
     case 'trmm_files':
       await openTrmmFileBrowser(context, row.agent!);
     case 'background':

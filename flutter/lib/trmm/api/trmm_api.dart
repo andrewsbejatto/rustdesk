@@ -127,6 +127,21 @@ class TrmmApi {
   Future<void> snoozeAlert(int id, int days) =>
       client.put('/alerts/$id/', {'id': id, 'type': 'snooze', 'snooze_days': days});
 
+  // ---------------------------------------------------------------- session recordings
+  Future<Map<String, dynamic>> recordings(
+          {int page = 1, int pageSize = 50, String? agentId, String? source, String? search}) async =>
+      Map<String, dynamic>.from(await client.get('/recordings/', query: {
+        'page': page,
+        'page_size': pageSize,
+        if (agentId != null && agentId.isNotEmpty) 'agent_id': agentId,
+        if (source != null && source.isNotEmpty) 'source': source,
+        if (search != null && search.isNotEmpty) 'search': search,
+      }));
+
+  /// temporary link of the recording in the bucket (audited by the server)
+  Future<Map<String, dynamic>> recordingPlayLink(int id) async =>
+      Map<String, dynamic>.from(await client.get('/recordings/$id/play/'));
+
   // ---------------------------------------------------------------- remote access (TRMM Desktop)
   Future<List<dynamic>> remoteDevices({int? clientId, int? siteId}) async =>
       await client.get('/remoteaccess/devices/', query: {

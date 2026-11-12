@@ -671,6 +671,21 @@ pub async fn start_server(is_server: bool, no_server: bool) {
 
     if is_server {
         crate::common::set_server_running(true);
+        // TRMM Desktop: recordings that were not uploaded (installed managed
+        // host only: a quick support token belongs to one session)
+        // (same folder as the recorder: video_service.rs get_recorder)
+        #[cfg(windows)]
+        if crate::platform::is_installed() {
+            crate::hbbs_http::record_upload::upload_leftovers(
+                crate::ui_interface::video_save_directory(crate::platform::is_root()),
+            );
+        }
+        #[cfg(target_os = "linux")]
+        if crate::platform::is_installed() {
+            crate::hbbs_http::record_upload::upload_leftovers(
+                crate::ui_interface::video_save_directory(false),
+            );
+        }
         std::thread::spawn(move || {
             if let Err(err) = crate::ipc::start("") {
                 log::error!("Failed to start ipc: {}", err);

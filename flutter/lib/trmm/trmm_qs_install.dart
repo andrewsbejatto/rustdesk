@@ -71,6 +71,13 @@ class TrmmQsSession {
   final state = ValueNotifier<String>('');
   final message = ValueNotifier<String>('');
 
+  /// the TRMM server records this session (recordings app)
+  final recording = ValueNotifier<bool>(false);
+
+  /// "this session is recorded" notice for the customer: disabled for now
+  /// (user request 2026-11-12); set to true to show it again
+  static const showRecordingNotice = false;
+
   bool get ready => _sessionId != null;
 
   Map<String, String> get _headers => {
@@ -100,6 +107,8 @@ class TrmmQsSession {
     if (_started || _cfg == null) return;
     _started = true;
     trmmQsBeforeQuit = close;
+    // a token of a previous run is never reused
+    _setRecording('', '');
     _schedule(const Duration(seconds: 3));
   }
 
@@ -109,6 +118,7 @@ class TrmmQsSession {
   Future<void> close() async {
     _closed = true;
     _timer?.cancel();
+    _setRecording('', '');
     final id = _sessionId;
     if (id == null || _cfg == null) return;
     _sessionId = null;
@@ -147,6 +157,7 @@ class TrmmQsSession {
         });
         _sessionId = r['session_id'] as String;
         _secret = r['session_secret'] as String;
+        await _setupRecording();
       } else {
         final r = await _post('/quicksupport/client/sessions/$_sessionId/heartbeat/', {
           if (_hasIdentity) 'remote_id': _remoteId,
@@ -160,6 +171,34 @@ class TrmmQsSession {
     // check the approval more often while waiting for it
     if (state.value == 'requested') next = const Duration(seconds: 5);
     _schedule(next);
+  }
+
+  /// session recording: the engine records every incoming connection and
+  /// streams it to the TRMM server (src/hbbs_http/record_upload.rs) when
+  /// trmm-record-url/token are set. 404 = recording off.
+  Future<void> _setupRecording() async {
+    try {
+      final r = await http
+          .post(Uri.parse('${_cfg!.api}/recordings/qs/$_sessionId/token/'),
+              headers: _headers, body: '{}')
+          .timeout(const Duration(seconds: 30));
+      if (r.statusCode != 200) return;
+      final data = jsonDecode(r.body);
+      final url = data is Map ? (data['url'] as String? ?? '') : '';
+      final token = data is Map ? (data['token'] as String? ?? '') : '';
+      if (!url.startsWith('https://') || !RegExp(r'^[A-Za-z0-9_-]{16,128}$').hasMatch(token)) {
+        return;
+      }
+      await _setRecording(url, token);
+    } catch (_) {}
+  }
+
+  Future<void> _setRecording(String url, String token) async {
+    try {
+      await bind.mainSetOption(key: 'trmm-record-url', value: url);
+      await bind.mainSetOption(key: 'trmm-record-token', value: token);
+      recording.value = url.isNotEmpty;
+    } catch (_) {}
   }
 
   Future<void> requestInstall() async {
@@ -305,6 +344,28 @@ class _TrmmQsInstallButtonState extends State<TrmmQsInstallButton> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            ValueListenableBuilder<bool>(
+              valueListenable: _session.recording,
+              builder: (context, on, _) => !on || !TrmmQsSession.showRecordingNotice
+                  ? const SizedBox.shrink()
+                  : Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.12),
+                        border: Border.all(color: Colors.red.shade400),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.fiber_manual_record, color: Colors.red.shade600, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(tr('qs_recording_notice'),
+                              style: const TextStyle(fontSize: 12)),
+                        ),
+                      ]),
+                    ),
+            ),
             OutlinedButton.icon(
               onPressed: canClick
                   ? () async {

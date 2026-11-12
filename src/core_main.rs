@@ -463,6 +463,44 @@ pub fn core_main() -> Option<CoreMainAction> {
                 }
             }
             return None;
+        } else if args[0] == "--record-config" {
+            // TRMM Desktop: session recording upload of this managed computer
+            // (recordings app). JSON {"url": "https://...", "token": "..."} in a
+            // root/SYSTEM only file, deleted after reading; empty file = off
+            if args.len() == 2 {
+                let text = std::fs::read_to_string(&args[1]).unwrap_or_default();
+                let _ = std::fs::remove_file(&args[1]);
+                if !(crate::platform::is_installed() && is_root()) {
+                    println!("Installation and administrative privileges required!");
+                    return None;
+                }
+                use crate::hbbs_http::record_upload::{
+                    valid_trmm_target, OPTION_TRMM_RECORD_TOKEN, OPTION_TRMM_RECORD_URL,
+                };
+                let text = text.trim();
+                let (url, token) = if text.is_empty() {
+                    (String::new(), String::new())
+                } else {
+                    let v: serde_json::Value = match serde_json::from_str(text) {
+                        Ok(v) => v,
+                        Err(_) => {
+                            println!("Invalid recording config");
+                            return None;
+                        }
+                    };
+                    let url = v["url"].as_str().unwrap_or_default().to_owned();
+                    let token = v["token"].as_str().unwrap_or_default().to_owned();
+                    if !valid_trmm_target(&url, &token) {
+                        println!("Invalid recording config");
+                        return None;
+                    }
+                    (url, token)
+                };
+                crate::ipc::set_option(OPTION_TRMM_RECORD_URL, &url);
+                crate::ipc::set_option(OPTION_TRMM_RECORD_TOKEN, &token);
+                println!("Done!");
+            }
+            return None;
         } else if args[0] == "--password" {
             if is_cli_setting_change_disabled() {
                 println!("Settings are disabled!");
@@ -908,6 +946,7 @@ fn is_user_main_ipc_scope_cli_command(args: &[String]) -> bool {
         args.first().map(String::as_str),
         Some("--password")
             | Some("--password-file")
+            | Some("--record-config")
             | Some("--set-unlock-pin")
             | Some("--get-id")
             | Some("--set-id")
