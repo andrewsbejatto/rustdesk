@@ -18,6 +18,7 @@ import 'trmm_agent_actions.dart';
 import 'trmm_agent_panel.dart';
 import '../trmm_layout.dart';
 import 'trmm_alerts_page.dart';
+import 'trmm_bulk_remote_access.dart';
 import 'trmm_clients_dialogs.dart';
 import 'trmm_install_agent_dialog.dart';
 import 'trmm_quick_support_page.dart';
@@ -404,6 +405,10 @@ class _TrmmDashboardPageState extends State<TrmmDashboardPage> {
       constraints: const BoxConstraints(minWidth: 220),
       items: [
         item('add_client', Icons.add_business_outlined, tr('Add client')),
+        if (TrmmSession.to.canUseRemoteAccess) ...[
+          const PopupMenuDivider(),
+          item('ra_bulk', Icons.install_desktop, tr('Install / update remote access...')),
+        ],
         if (client != null) ...[
           item('add_site', Icons.add_location_alt_outlined, tr('Add site')),
           const PopupMenuDivider(),
@@ -430,6 +435,10 @@ class _TrmmDashboardPageState extends State<TrmmDashboardPage> {
         await _siteDialog(site: site);
       case 'delete_site':
         await _deleteDialog(client!, site);
+      case 'ra_bulk':
+        if (!mounted) return;
+        await showBulkRemoteAccessDialog(context, client: client, site: site);
+        _refresh();
     }
   }
 

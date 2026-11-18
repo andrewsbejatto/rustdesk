@@ -21,6 +21,12 @@ String tr(String key, [List<Object?> args = const []]) {
 
 /// English texts whose key is not the text itself
 const _en = <String, String>{
+  'bulk_ra_help':
+      'Installs the TRMM Desktop host on every online Windows and Linux computer with the Tactical agent. The server installs 3 computers at a time, about 2 minutes each, so the rest of Tactical RMM is not slowed down. You can close this window.',
+  'bulk_ra_reinstall_help':
+      'Reinstalls the version that is on the server and gives each computer a new password. Without it, only the computers without remote access (or with an error) are installed.',
+  'bulk_ra_follow':
+      'Follow each computer in the agent panel (Remote access). Computers with a problem show the error there; run again to retry them.',
   'qs_recording_notice': 'This support session is recorded by the technician\'s company.',
   'save_password_help': 'Kept on this computer, readable only by your user (encrypted on Windows). The 2FA code is still asked.',
   'policy_agent_policy': 'Agent policy',
@@ -37,6 +43,24 @@ const _en = <String, String>{
 };
 
 const _pt = <String, String>{
+  'bulk_ra_help':
+      'Instala o host do TRMM Desktop em todos os computadores Windows e Linux online com o agente do Tactical. O servidor instala 3 computadores por vez, cerca de 2 minutos cada, para não deixar o resto do Tactical RMM lento. Pode fechar esta janela.',
+  'bulk_ra_reinstall_help':
+      'Reinstala a versão que está no servidor e gera uma senha nova para cada computador. Sem esta opção, só os computadores sem acesso remoto (ou com erro) são instalados.',
+  'bulk_ra_follow':
+      'Acompanhe cada computador no painel do agente (Acesso remoto). Os que tiverem problema mostram o erro lá; rode de novo para tentar outra vez.',
+  'Install / update remote access': 'Instalar / atualizar acesso remoto',
+  'Install / update remote access...': 'Instalar / atualizar acesso remoto...',
+  'Site {0} ({1})': 'Site {0} ({1})',
+  'Client {0}': 'Cliente {0}',
+  'Computers: {0}': 'Computadores: {0}',
+  'Also update the computers that already have remote access':
+      'Atualizar também os computadores que já têm acesso remoto',
+  '{0} computer(s) queued, {1} at a time': '{0} computador(es) na fila, {1} por vez',
+  'Estimated time: about {0} minutes': 'Tempo estimado: cerca de {0} minutos',
+  '{0} offline computer(s) skipped: run again when they are on':
+      '{0} computador(es) offline ignorado(s): rode de novo quando estiverem ligados',
+  '{0} computer(s) were already in the queue': '{0} computador(es) já estavam na fila',
   'Session Recordings': 'Gravações de Sessões',
   'Search hostname or technician': 'Buscar computador ou técnico',
   'All sources': 'Todas as origens',
