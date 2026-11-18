@@ -1,182 +1,127 @@
-<p align="center">
-  <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
-  <a href="#raw-steps-to-build">Build</a> •
-  <a href="#how-to-build-with-docker">Docker</a> •
-  <a href="#file-structure">Structure</a> •
-  <a href="#screenshots">Screenshots</a><br>
-  [<a href="docs/README-UA.md">Українська</a>] | [<a href="docs/README-CS.md">česky</a>] | [<a href="docs/README-ZH.md">中文</a>] | [<a href="docs/README-HU.md">Magyar</a>] | [<a href="docs/README-ES.md">Español</a>] | [<a href="docs/README-FA.md">فارسی</a>] | [<a href="docs/README-FR.md">Français</a>] | [<a href="docs/README-DE.md">Deutsch</a>] | [<a href="docs/README-PL.md">Polski</a>] | [<a href="docs/README-ID.md">Indonesian</a>] | [<a href="docs/README-FI.md">Suomi</a>] | [<a href="docs/README-ML.md">മലയാളം</a>] | [<a href="docs/README-JP.md">日本語</a>] | [<a href="docs/README-NL.md">Nederlands</a>] | [<a href="docs/README-IT.md">Italiano</a>] | [<a href="docs/README-RU.md">Русский</a>] | [<a href="docs/README-PTBR.md">Português (Brasil)</a>] | [<a href="docs/README-EO.md">Esperanto</a>] | [<a href="docs/README-KR.md">한국어</a>] | [<a href="docs/README-AR.md">العربي</a>] | [<a href="docs/README-VN.md">Tiếng Việt</a>] | [<a href="docs/README-DA.md">Dansk</a>] | [<a href="docs/README-GR.md">Ελληνικά</a>] | [<a href="docs/README-TR.md">Türkçe</a>] | [<a href="docs/README-NO.md">Norsk</a>] | [<a href="docs/README-RO.md">Română</a>]<br>
-  <b>We need your help to translate this README, <a href="https://github.com/rustdesk/rustdesk/tree/master/src/lang">RustDesk UI</a> and <a href="https://github.com/rustdesk/doc.rustdesk.com">RustDesk Doc</a> to your native language</b>
-</p>
+# TRMM Desktop – a RustDesk fork for Tactical RMM (`trmm-desktop`)
+
+**TRMM Desktop** is an **unofficial fork** of [**RustDesk**](https://github.com/rustdesk/rustdesk)
+that turns it into a desktop client for [Tactical RMM](https://github.com/amidaware/tacticalrmm)
+with remote control built in. It is not affiliated with, endorsed or supported by
+the RustDesk team or by AmidaWare LLC (Tactical RMM). For RustDesk itself, see the
+[original repository](https://github.com/rustdesk/rustdesk) and its
+[original README](https://github.com/rustdesk/rustdesk#readme).
+
+- Branch `trmm-desktop`: **TRMM Desktop 1.0.0**, based on **RustDesk 1.5.1**.
+- It needs the Tactical RMM backend from
+  [andrewsbejatto/tacticalrmm, branch `trmm-custom`](https://github.com/andrewsbejatto/tacticalrmm/tree/trmm-custom)
+  (the `remoteaccess`, `quicksupport` and `recordings` apps).
+- `libs/hbb_common` points to
+  [andrewsbejatto/hbb_common, branch `trmm-desktop`](https://github.com/andrewsbejatto/hbb_common/tree/trmm-desktop).
+
+It was built by an MSP for its own daily use and is shared for the community.
 
 > [!Caution]
-> **Misuse Disclaimer:** <br>
-> The developers of RustDesk do not condone or support any unethical or illegal use of this software. Misuse, such as unauthorized access, control or invasion of privacy, is strictly against our guidelines. The authors are not responsible for any misuse of the application.
+> **Misuse disclaimer (from RustDesk, applies here too):** the developers do not
+> condone or support any unethical or illegal use of this software. Unauthorized
+> access, control or invasion of privacy is strictly against our guidelines.
 
+## One app, three roles
 
-Chat with us: [Discord](https://discord.gg/nDceKgxnkV) | [Twitter](https://twitter.com/rustdesk) | [Reddit](https://www.reddit.com/r/rustdesk) | [YouTube](https://www.youtube.com/@rustdesk)
+The same executable works as:
 
-[![RustDesk Server Pro](https://img.shields.io/badge/RustDesk%20Server%20Pro-Advanced%20Features-blue)](https://rustdesk.com/pricing.html)
+1. **Technician app.** It opens the Tactical RMM screens instead of the
+   RustDesk home page.
+2. **Managed host.** It is installed silently on the managed computers by
+   Tactical RMM, through the Tactical agent:
+   - permanent password only;
+   - hidden tray and connection window;
+   - no auto-update;
+   - its own service and folders, so it does not clash with a regular RustDesk
+     install.
+3. **Quick support.** Executable name containing `-qs`, e.g. `TRMM-Suporte.exe`,
+   downloaded from Tactical with a configuration appended to the file:
+   - the configuration is signed with the server's Ed25519 key;
+   - the app only accepts the keys compiled into its build;
+   - RustDesk's "config in the file name" is disabled.
 
-Yet another remote desktop solution, written in Rust. Works out of the box with no configuration required. You have full control of your data, with no concerns about security. You can use our rendezvous/relay server, [set up your own](https://rustdesk.com/server), or [write your own rendezvous/relay server](https://github.com/rustdesk/rustdesk-server-demo).
+## Tactical RMM in the app (Flutter, `flutter/lib/trmm`)
 
-![image](https://user-images.githubusercontent.com/71636191/171661982-430285f0-2e12-4b1d-9957-4a58e375304d.png)
+- **Servers:** login with 2FA, several Tactical RMM servers, tokens kept
+  encrypted (DPAPI on Windows, a 600-mode file on Linux).
+- **Agents:**
+  - client/site tree with servers / workstations / mixed views;
+  - agent list with search, status and alert icons;
+  - agent tabs: summary, checks, tasks, patches, software, history, notes,
+    assets, pending actions, audit, debug.
+- **Agent actions:** run script or command, reboot / shutdown, Wake-on-LAN,
+  maintenance mode, edit, remove, and the remote access ones: install,
+  repair, change password.
+- **Remote Background:** terminal, processes, services, event log, registry.
+  There is also a native file browser (Tactical agent 2.12+).
+- **Take Control:**
+  - opens **inside the app** with the RustDesk engine, with file transfer;
+  - offers to install the host when the computer doesn't have it yet;
+  - MeshCentral pages (desktop, terminal, files) open in an embedded WebView
+    limited to the MeshCentral address, with one profile per server.
+- **Bulk install / update of the remote access:** right click on all
+  clients, a client or a site. The server queues it and installs 3 computers
+  at a time.
+- **Quick Support:**
+  - MeshCentral by code;
+  - TRMM Desktop: the customer's session appears as a card, double-click to
+    connect;
+  - approve or deny "install permanent access" requests.
+- **Alerts:** tray notifications with resolve/snooze. Also start with the
+  system and close to tray.
+- **Session recordings:** list and play the recordings stored in S3.
+- **Install agent:** the Tactical agent alone or combined with remote access.
+- Brazilian Portuguese and English, following the Tactical user's language.
 
-RustDesk welcomes contribution from everyone. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for help getting started.
+## Remote session recording (host side)
 
-[**FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
+Remote sessions are end-to-end encrypted: the relay server can't see the
+screen. So when Tactical enables recording, the **managed host** (and the
+quick support executable) records the incoming session:
+- `src/hbbs_http/record_upload.rs` streams the video to Tactical RMM
+  **during** the session, over https with a per-device token;
+- the local file is deleted after the upload, and leftovers are sent again
+  when the service starts;
+- the CLI `--record-config <file>` is used by the provisioning scripts.
 
-[**BINARY DOWNLOAD**](https://github.com/rustdesk/rustdesk/releases)
+## Building
 
-[**NIGHTLY BUILD**](https://github.com/rustdesk/rustdesk/releases/tag/nightly)
+Build it like RustDesk with Flutter (`python build.py --flutter`; see the
+[original README](https://github.com/rustdesk/rustdesk#readme) for the
+dependencies: Flutter 3.24.5, vcpkg libraries, LLVM). One extra environment
+variable is required:
 
-[<img src="https://f-droid.org/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80">](https://f-droid.org/en/packages/com.carriez.flutter_hbb)
-[<img src="https://flathub.org/api/badge?svg&locale=en"
-    alt="Get it on Flathub"
-    height="80">](https://flathub.org/apps/com.rustdesk.RustDesk)
-
-## Dependencies
-
-Desktop versions use Flutter or Sciter (deprecated) for GUI. This tutorial is for Sciter only, since it is easier and more friendly to start. Check out our [CI](https://github.com/rustdesk/rustdesk/blob/master/.github/workflows/flutter-build.yml) for building the Flutter version.
-
-Please download Sciter dynamic library yourself.
-
-[Windows](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll) |
-[Linux](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so) |
-[macOS](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/libsciter.dylib)
-
-## Raw Steps to build
-
-- Prepare your Rust development env and C++ build env
-
-- Install [vcpkg](https://github.com/microsoft/vcpkg), and set `VCPKG_ROOT` env variable correctly
-
-  - Windows: vcpkg install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static
-  - Linux/macOS: vcpkg install libvpx libyuv opus aom
-
-- run `cargo run`
-
-## [Build](https://rustdesk.com/docs/en/dev/build/)
-
-## How to Build on Linux
-
-### Ubuntu 18 (Debian 10)
-
-```sh
-sudo apt install -y zip g++ gcc git curl wget nasm yasm libgtk-3-dev clang libxcb-randr0-dev libxdo-dev \
-        libxfixes-dev libxcb-shape0-dev libxcb-xfixes0-dev libasound2-dev libpulse-dev cmake make \
-        libclang-dev ninja-build libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+```bash
+# public keys printed by `python manage.py remoteaccess_signing_key` on each
+# Tactical RMM server, comma separated
+export TRMM_TRAILER_KEYS="key1=,key2="
 ```
 
-### openSUSE Tumbleweed
+Without it, the quick support executable ignores the configuration it was
+downloaded with. The technician app and the managed hosts work without it.
 
-```sh
-sudo zypper install gcc-c++ git curl wget nasm yasm gcc gtk3-devel clang libxcb-devel libXfixes-devel cmake alsa-lib-devel gstreamer-devel gstreamer-plugins-base-devel xdotool-devel
-```
+The server address and key are **not** compiled in:
+- the technician app gets them from Tactical after login;
+- the hosts get them from the provisioning script.
 
-### Fedora 28 (CentOS 8)
+## License
 
-```sh
-sudo yum -y install gcc-c++ git curl wget nasm yasm gcc gtk3-devel clang libxcb-devel libxdo-devel libXfixes-devel pulseaudio-libs-devel cmake alsa-lib-devel gstreamer1-devel gstreamer1-plugins-base-devel
-```
+Like RustDesk, this fork is licensed under the **GNU AGPL-3.0** (see
+[LICENCE](LICENCE)). Its full source code is published here. The app uses its
+own name and icons and does not use the RustDesk brand. "Tactical RMM" is a
+trade mark of AmidaWare LLC.
 
-### Arch (Manjaro)
+---
 
-```sh
-sudo pacman -Syu --needed unzip git cmake gcc curl wget yasm nasm zip make pkg-config clang gtk3 xdotool libxcb libxfixes alsa-lib pipewire
-```
+### Português (resumo)
 
-### Install vcpkg
+Fork não oficial do [RustDesk](https://github.com/rustdesk/rustdesk) que vira
+o app **TRMM Desktop**: as telas do Tactical RMM com o acesso remoto do
+RustDesk dentro do mesmo programa. É ao mesmo tempo:
+- o app do técnico;
+- o host silencioso dos computadores gerenciados;
+- o Suporte Rápido, com configuração assinada.
 
-```sh
-git clone https://github.com/microsoft/vcpkg
-cd vcpkg
-git checkout 2023.04.15
-cd ..
-vcpkg/bootstrap-vcpkg.sh
-export VCPKG_ROOT=$HOME/vcpkg
-vcpkg/vcpkg install libvpx libyuv opus aom
-```
-
-### Fix libvpx (For Fedora)
-
-```sh
-cd vcpkg/buildtrees/libvpx/src
-cd *
-./configure
-sed -i 's/CFLAGS+=-I/CFLAGS+=-fPIC -I/g' Makefile
-sed -i 's/CXXFLAGS+=-I/CXXFLAGS+=-fPIC -I/g' Makefile
-make
-cp libvpx.a $HOME/vcpkg/installed/x64-linux/lib/
-cd
-```
-
-### Build
-
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-git clone --recurse-submodules https://github.com/rustdesk/rustdesk
-cd rustdesk
-mkdir -p target/debug
-wget https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so
-mv libsciter-gtk.so target/debug
-VCPKG_ROOT=$HOME/vcpkg cargo run
-```
-
-## How to build with Docker
-
-Begin by cloning the repository and building the Docker container:
-
-```sh
-git clone https://github.com/rustdesk/rustdesk
-cd rustdesk
-git submodule update --init --recursive
-docker build -t "rustdesk-builder" .
-```
-
-Then, each time you need to build the application, run the following command:
-
-```sh
-docker run --rm -it -v $PWD:/home/user/rustdesk -v rustdesk-git-cache:/home/user/.cargo/git -v rustdesk-registry-cache:/home/user/.cargo/registry -e PUID="$(id -u)" -e PGID="$(id -g)" rustdesk-builder
-```
-
-Note that the first build may take longer before dependencies are cached, subsequent builds will be faster. Additionally, if you need to specify different arguments to the build command, you may do so at the end of the command in the `<OPTIONAL-ARGS>` position. For instance, if you wanted to build an optimized release version, you would run the command above followed by `--release`. The resulting executable will be available in the target folder on your system, and can be run with:
-
-```sh
-target/debug/rustdesk
-```
-
-Or, if you're running a release executable:
-
-```sh
-target/release/rustdesk
-```
-
-Please ensure that you run these commands from the root of the RustDesk repository, or the application may not find the required resources. Also note that other cargo subcommands such as `install` or `run` are not currently supported via this method as they would install or run the program inside the container instead of the host.
-
-## File Structure
-
-- **[libs/hbb_common](https://github.com/rustdesk/rustdesk/tree/master/libs/hbb_common)**: video codec, config, tcp/udp wrapper, and some other utility functions shared with the server
-- **[libs/base](https://github.com/rustdesk/rustdesk/tree/master/libs/base)**: protobuf, fs functions for file transfer, keyboard and platform code used only by this app
-- **[libs/scrap](https://github.com/rustdesk/rustdesk/tree/master/libs/scrap)**: screen capture
-- **[libs/enigo](https://github.com/rustdesk/rustdesk/tree/master/libs/enigo)**: platform specific keyboard/mouse control
-- **[libs/clipboard](https://github.com/rustdesk/rustdesk/tree/master/libs/clipboard)**: file copy and paste implementation for Windows, Linux, macOS.
-- **[src/ui](https://github.com/rustdesk/rustdesk/tree/master/src/ui)**: obsolete Sciter UI (deprecated)
-- **[src/server](https://github.com/rustdesk/rustdesk/tree/master/src/server)**: audio/clipboard/input/video services, and network connections
-- **[src/client.rs](https://github.com/rustdesk/rustdesk/tree/master/src/client.rs)**: start a peer connection
-- **[src/rendezvous_mediator.rs](https://github.com/rustdesk/rustdesk/tree/master/src/rendezvous_mediator.rs)**: Communicate with [rustdesk-server](https://github.com/rustdesk/rustdesk-server), wait for remote direct (TCP hole punching) or relayed connection
-- **[src/platform](https://github.com/rustdesk/rustdesk/tree/master/src/platform)**: platform specific code
-- **[flutter](https://github.com/rustdesk/rustdesk/tree/master/flutter)**: Flutter code for desktop and mobile
-
-## Screenshots
-
-![Connection Manager](https://github.com/rustdesk/rustdesk/assets/28412477/db82d4e7-c4bc-4823-8e6f-6af7eadf7651)
-
-![Connected to a Windows PC](https://github.com/rustdesk/rustdesk/assets/28412477/9baa91e9-3362-4d06-aa1a-7518edcbd7ea)
-
-![File Transfer](https://github.com/rustdesk/rustdesk/assets/28412477/39511ad3-aa9a-4f8c-8947-1cce286a46ad)
-
-![TCP Tunneling](https://github.com/rustdesk/rustdesk/assets/28412477/78e8708f-e87e-4570-8373-1360033ea6c5)
-
+Grava as sessões e envia ao Tactical RMM. Precisa do backend do branch
+`trmm-custom` do fork `andrewsbejatto/tacticalrmm`. Licença AGPL-3.0. Não tem
+relação com a equipe do RustDesk nem com a AmidaWare.
