@@ -6,6 +6,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 
@@ -79,12 +80,30 @@ void trmmSnack(BuildContext context, String msg, {bool error = false}) {
     showTrmmForbidden(context, msg);
     return;
   }
-  ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-    content: Text(msg),
-    backgroundColor: error ? Colors.red.shade700 : null,
-    duration: Duration(seconds: error ? 6 : 3),
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  if (messenger == null) return;
+  if (!error) {
+    messenger.showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 3)));
+    return;
+  }
+  // errors: selectable text + "Copy" button, and time to read / copy them
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(SnackBar(
+    content: SelectableText(msg, style: const TextStyle(color: Colors.white)),
+    backgroundColor: Colors.red.shade700,
+    duration: const Duration(seconds: 15),
+    showCloseIcon: true,
+    closeIconColor: Colors.white,
+    action: SnackBarAction(
+      label: tr('Copy'),
+      textColor: Colors.white,
+      onPressed: () => trmmCopyText(msg),
+    ),
   ));
 }
+
+/// copies [text] to the clipboard (error messages)
+Future<void> trmmCopyText(String text) => Clipboard.setData(ClipboardData(text: text));
 
 Future<bool> trmmConfirm(BuildContext context, String text, {String? title}) async {
   final r = await showDialog<bool>(

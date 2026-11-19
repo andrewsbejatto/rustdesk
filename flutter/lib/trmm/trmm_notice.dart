@@ -2,6 +2,7 @@
 // a small snackbar at the bottom was easy to miss.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'api/trmm_client.dart';
 import 'trmm_i18n.dart';
@@ -43,8 +44,23 @@ class TrmmForbiddenView extends StatelessWidget {
 /// error inside a panel: the big notice for 403, plain text otherwise
 Widget trmmErrorView(BuildContext context, String message, {bool colored = true}) {
   if (isTrmmForbidden(message)) return TrmmForbiddenView(message);
+  // selectable, with a copy button: error messages are often sent to support
   return Center(
-      child: Text(message, style: colored ? TextStyle(color: Theme.of(context).colorScheme.error) : null));
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Flexible(
+          child: SelectableText(message,
+              style: colored ? TextStyle(color: Theme.of(context).colorScheme.error) : null),
+        ),
+        IconButton(
+          tooltip: tr('Copy'),
+          icon: const Icon(Icons.copy, size: 18),
+          onPressed: () => Clipboard.setData(ClipboardData(text: message)),
+        ),
+      ]),
+    ),
+  );
 }
 
 bool _dialogOpen = false;

@@ -180,7 +180,7 @@ class _TrmmLoginPageState extends State<TrmmLoginPage> {
         ..._stepFields(),
         if (_error != null) ...[
           const SizedBox(height: 12),
-          Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          SelectableText(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
         ],
         const SizedBox(height: 20),
         Row(children: [

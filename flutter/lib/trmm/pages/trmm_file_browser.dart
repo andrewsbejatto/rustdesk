@@ -705,7 +705,7 @@ class _TrmmFileBrowserDialogState extends State<TrmmFileBrowserDialog> {
           width: double.infinity,
           color: theme.colorScheme.error.withOpacity(0.1),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+          child: SelectableText(_error!, style: TextStyle(color: theme.colorScheme.error)),
         ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),

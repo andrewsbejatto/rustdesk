@@ -43,6 +43,7 @@ const _en = <String, String>{
 };
 
 const _pt = <String, String>{
+  'Copy': 'Copiar',
   'bulk_ra_help':
       'Instala o host do TRMM Desktop em todos os computadores Windows e Linux online com o agente do Tactical. O servidor instala 3 computadores por vez, cerca de 2 minutos cada, para não deixar o resto do Tactical RMM lento. Pode fechar esta janela.',
   'bulk_ra_reinstall_help':
